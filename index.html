@@ -6,54 +6,60 @@
 <script src="js/date-utils.js"></script>
 <script>
 var WEEK_MS = 1000 * 60 * 60 * 24 * 7;
-var fourWeeksAgo = timeAgo(WEEK_MS * 4);
 
-$(window).ready(function() {
+function getReviewerInfo(email, numWeeksAgo, cb) {
+  var requestsLeft = 0;
+  var result = {
+    reviewsPending: 0,
+    reviewsDone: new Array(numWeeksAgo)
+  };
+
   Bugzilla.ajax({
     url: "/count",
     data: {
       status: ["NEW", "UNCONFIRMED", "ASSIGNED", "REOPENED"],
-      'flag.requestee': 'avarma@mozilla.com',
+      'flag.requestee': email,
       'product': 'Mozilla Labs',
       'component': 'Jetpack SDK',
       'changed_field': 'flag',
-      'changed_after': fourWeeksAgo
+      'changed_after': timeAgo(WEEK_MS * numWeeksAgo)
     },
     success: function(data) {
-      console.log("reviews pending", data.data);
+      result.reviewsPending = data.data;
+      if (--requestsLeft == 0)
+        cb(result);
     }
   });
+  requestsLeft += 1;
 
-  Bugzilla.ajax({
-    url: "/count",
-    data: {
-      'flag': 'review+',
-      'flag.setter': 'avarma@mozilla.com',
-      'product': 'Mozilla Labs',
-      'component': 'Jetpack SDK',
-      'changed_field': 'flag',
-      'changed_after': fourWeeksAgo
-    },
-    success: function(data) {
-      console.log("reviews granted", data.data);
-    }
+  function getReviewsForWeek(numWeeksAgo) {
+    Bugzilla.ajax({
+      url: "/count",
+      data: {
+        'flag.setter': email,
+        'product': 'Mozilla Labs',
+        'component': 'Jetpack SDK',
+        'changed_field': 'flag',
+        'changed_before': timeAgo(WEEK_MS * numWeeksAgo),
+        'changed_after': timeAgo(WEEK_MS * (numWeeksAgo + 1))
+      },
+      success: function(data) {
+        result.reviewsDone[numWeeksAgo] = data.data;
+        if (--requestsLeft == 0)
+          cb(result);
+      }
+    });
+    requestsLeft += 1;
+  }
+
+  for (var i = 0; i < numWeeksAgo; i++)
+    getReviewsForWeek(i);
+}
+
+$(window).ready(function() {
+  getReviewerInfo('avarma@mozilla.com', 4, function(result) {
+    console.log(JSON.stringify(result));
   });
-
-  Bugzilla.ajax({
-    url: "/count",
-    data: {
-      'flag': 'review-',
-      'flag.setter': 'avarma@mozilla.com',
-      'product': 'Mozilla Labs',
-      'component': 'Jetpack SDK',
-      'changed_field': 'flag',
-      'changed_after': fourWeeksAgo
-    },
-    success: function(data) {
-      console.log("reviews denied", data.data);
-    }
-  });
-
 });
 </script>
 <p>Hi.</p>
