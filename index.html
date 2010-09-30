@@ -57,9 +57,67 @@ function getReviewerInfo(email, numWeeksAgo, cb) {
 }
 
 $(window).ready(function() {
-  getReviewerInfo('avarma@mozilla.com', 4, function(result) {
-    console.log(JSON.stringify(result));
+  getReviewerInfo('avarma@mozilla.com', 8, function(result) {
+    result.reviewsDone.reverse();
+    var code = "sparkline(" + JSON.stringify(result.reviewsDone) + ")";
+    console.log("code is", code);
+    $(".name").before($("<script></" + "script>").text(code));
+    //console.log(JSON.stringify(result));
   });
 });
 </script>
-<p>Hi.</p>
+<script src="js/protovis-r3.2.js"></script>
+<script>
+/** A simple sparkline with optional dots. */
+function sparkline(data, dots) {
+  var n = data.length,
+      w = n,
+      h = 10,
+      min = pv.min.index(data),
+      max = pv.max.index(data);
+
+  var vis = new pv.Panel()
+      .width(w)
+      .height(h)
+      .margin(2);
+
+  vis.add(pv.Line)
+      .data(data)
+      .left(pv.Scale.linear(0, n - 1).range(0, w).by(pv.index))
+      .bottom(pv.Scale.linear(data).range(0, h))
+      .strokeStyle("#000")
+      .lineWidth(1)
+    .add(pv.Dot)
+      .visible(function() { return (dots && this.index == 0) || this.index == n - 1})
+      .strokeStyle(null)
+      .fillStyle("brown")
+      .radius(2)
+    .add(pv.Dot)
+      .visible(function() { return dots && (this.index == min || this.index == max) })
+      .fillStyle("steelblue");
+
+  vis.render();
+}
+
+/** A sparkline bar chart. */
+function sparkbar(data) {
+  var w = 60,
+      h = 12;
+
+  var vis = new pv.Panel()
+      .width(w)
+      .height(h);
+
+  vis.add(pv.Bar)
+      .data(data)
+      .width(4)
+      .left(function() { return 5 * this.index })
+      .height(function(d) { return Math.round(h * d) })
+      .bottom(0);
+
+  vis.render();
+}
+</script>
+<div class="entry">
+  <span class="name">Atul</span>
+</div>
