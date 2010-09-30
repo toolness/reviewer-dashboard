@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Jetpack Reviewer Dashboard</title>
+<script src="js/jquery.js"></script>
+<script src="js/bugzilla.js"></script>
+<script src="js/date-utils.js"></script>
+<script>
+var WEEK_MS = 1000 * 60 * 60 * 24 * 7;
+var fourWeeksAgo = timeAgo(WEEK_MS * 4);
+
+$(window).ready(function() {
+  Bugzilla.ajax({
+    url: "/count",
+    data: {
+      status: ["NEW", "UNCONFIRMED", "ASSIGNED", "REOPENED"],
+      'flag.requestee': 'avarma@mozilla.com',
+      'product': 'Mozilla Labs',
+      'component': 'Jetpack SDK',
+      'changed_field': 'flag',
+      'changed_after': fourWeeksAgo
+    },
+    success: function(data) {
+      console.log("reviews pending", data.data);
+    }
+  });
+
+  Bugzilla.ajax({
+    url: "/count",
+    data: {
+      'flag': 'review+',
+      'flag.setter': 'avarma@mozilla.com',
+      'product': 'Mozilla Labs',
+      'component': 'Jetpack SDK',
+      'changed_field': 'flag',
+      'changed_after': fourWeeksAgo
+    },
+    success: function(data) {
+      console.log("reviews granted", data.data);
+    }
+  });
+
+  Bugzilla.ajax({
+    url: "/count",
+    data: {
+      'flag': 'review-',
+      'flag.setter': 'avarma@mozilla.com',
+      'product': 'Mozilla Labs',
+      'component': 'Jetpack SDK',
+      'changed_field': 'flag',
+      'changed_after': fourWeeksAgo
+    },
+    success: function(data) {
+      console.log("reviews denied", data.data);
+    }
+  });
+
+});
+</script>
+<p>Hi.</p>
