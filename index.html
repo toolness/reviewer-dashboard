@@ -5,7 +5,37 @@
 <script src="js/bugzilla.js"></script>
 <script src="js/date-utils.js"></script>
 <script>
+var REVIEWERS = [
+  {
+    name: "Atul",
+    twitter: "toolness",
+    email: "avarma@mozilla.com"
+  },
+  {
+    name: "Brian",
+    twitter: "lotharrr",
+    email: "avarma@mozilla.com"
+  },
+  {
+    name: "Dietrich",
+    twitter: "dietrich",
+    email: "dietrich@mozilla.com"
+  },
+  {
+    name: "Drew",
+    twitter: null,
+    email: "adw@mozilla.com"
+  },
+  {
+    name: "Myk",
+    twitter: "mykmelez",
+    email: "myk@mozilla.org"
+  }
+];
+
 var WEEK_MS = 1000 * 60 * 60 * 24 * 7;
+var WEEKS_BACK = 4;
+var STYLE_DEBUGGING_MODE = false;
 
 function getReviewerInfo(email, numWeeksAgo, cb) {
   var requestsLeft = 0;
@@ -56,68 +86,118 @@ function getReviewerInfo(email, numWeeksAgo, cb) {
     getReviewsForWeek(i);
 }
 
-$(window).ready(function() {
-  getReviewerInfo('avarma@mozilla.com', 8, function(result) {
+function makeRenderer(query) {
+  return function(result) {
     result.reviewsDone.reverse();
-    var code = "sparkline(" + JSON.stringify(result.reviewsDone) + ")";
-    console.log("code is", code);
-    $(".name").before($("<script></" + "script>").text(code));
-    //console.log(JSON.stringify(result));
+    makeBarChart(result.reviewsDone, query.find(".graph").attr("id"));
+    query.find(".pending").text(result.reviewsPending);
+  }
+}
+
+$(window).ready(function() {
+  REVIEWERS.forEach(function(info) {
+    var entry = $("#templates .entry").clone();
+    entry.find(".graph").attr("id", "graph-" + info.name);
+    entry.find(".name").text(info.name);
+    var dashboard = entry.find("a.dashboard");
+    dashboard.attr("href", dashboard.attr("href") + info.email);
+    if (info.twitter) {
+      var twitterURL = "http://twitter.com/" + info.twitter;
+      var twitterLink = $("<a></a>").attr("href", twitterURL);
+      twitterLink.attr("target", "twitter");
+      var twitterPortrait = new Image();
+      twitterPortrait.src = "http://img.tweetimag.es/i/" +
+                            info.twitter + "_b";
+      twitterLink.append(twitterPortrait);
+      entry.find(".portrait").append(twitterLink);
+    }
+    $(document.body).append(entry);
+
+    var renderer = makeRenderer(entry);
+
+    if (STYLE_DEBUGGING_MODE) {
+      var FAKE_DATA = {
+        reviewsPending: 2, 
+        reviewsDone: [9, 10, 7, 3]
+      };
+      renderer(FAKE_DATA);
+    } else
+      getReviewerInfo(info.email, WEEKS_BACK, renderer);
   });
 });
 </script>
 <script src="js/protovis-r3.2.js"></script>
 <script>
-/** A simple sparkline with optional dots. */
-function sparkline(data, dots) {
-  var n = data.length,
-      w = n,
-      h = 10,
-      min = pv.min.index(data),
-      max = pv.max.index(data);
-
+function makeBarChart(data, id) {
   var vis = new pv.Panel()
-      .width(w)
-      .height(h)
-      .margin(2);
-
-  vis.add(pv.Line)
-      .data(data)
-      .left(pv.Scale.linear(0, n - 1).range(0, w).by(pv.index))
-      .bottom(pv.Scale.linear(data).range(0, h))
-      .strokeStyle("#000")
-      .lineWidth(1)
-    .add(pv.Dot)
-      .visible(function() { return (dots && this.index == 0) || this.index == n - 1})
-      .strokeStyle(null)
-      .fillStyle("brown")
-      .radius(2)
-    .add(pv.Dot)
-      .visible(function() { return dots && (this.index == min || this.index == max) })
-      .fillStyle("steelblue");
-
-  vis.render();
-}
-
-/** A sparkline bar chart. */
-function sparkbar(data) {
-  var w = 60,
-      h = 12;
-
-  var vis = new pv.Panel()
-      .width(w)
-      .height(h);
+      .width(150)
+      .height(73)
+      .canvas(id);
 
   vis.add(pv.Bar)
       .data(data)
-      .width(4)
-      .left(function() { return 5 * this.index })
-      .height(function(d) { return Math.round(h * d) })
-      .bottom(0);
-
+      .width(20)
+      .height(function(d) { return d * 10; })
+      .bottom(0)
+      .left(function() { return this.index * 25; })
+      .anchor("bottom").add(pv.Label);
+      
   vis.render();
 }
 </script>
-<div class="entry">
-  <span class="name">Atul</span>
+<style>
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 9pt;
+  width: 40em;
+  margin: 0 auto;
+}
+
+#templates {
+  display: none;
+}
+
+.entry {
+  clear: both;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
+
+.name {
+  font-weight: bold;
+  font-size: 18pt;
+}
+
+.portrait {
+  float: left;
+  padding-right: 0.5em;
+  height: 73px;
+  width: 73px;
+}
+
+.graph {
+  float: right;
+}
+
+.info {
+  color: gray;
+}
+
+a.dashboard {
+  text-decoration: inherit;
+  color: inherit;
+}
+
+a.dashboard:hover {
+  text-decoration: underline;
+}
+</style>
+<h1>Jetpack Reviewer Dashboard</h1>
+<div id="templates">
+  <div class="entry">
+    <div class="portrait"></div>
+    <div class="graph"></div>
+    <div class="name"></div>
+    <div class="info"><a class="dashboard" target="dashboard" href="http://toolness.github.com/bugzilla-dashboard/#username="><span class="pending"></span> reviews pending</a></div>
+  </div>
 </div>
