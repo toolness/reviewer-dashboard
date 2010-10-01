@@ -131,13 +131,13 @@ $(window).ready(function() {
 function makeBarChart(data, id) {
   var vis = new pv.Panel()
       .width(150)
-      .height(73)
+      .height(70)
       .canvas(id);
 
   vis.add(pv.Bar)
       .data(data)
       .width(20)
-      .height(function(d) { return d * 10; })
+      .height(function(d) { return d * 5; })
       .bottom(0)
       .left(function() { return this.index * 25; })
       .anchor("bottom").add(pv.Label);
